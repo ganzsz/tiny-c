@@ -1,5 +1,6 @@
 /* TODO: Do i want this*/
 #define null    0
+#define eol     13
 
 /* define the symbol table parameters */
 #define symsiz  14
@@ -9,6 +10,7 @@
 #define endglb  startglb+numglbs+symsiz
 #define startloc endglb+symsiz
 #define endloc  symtab+symtbsz-symsiz
+#define intsize 2
 
 /* define symbol table entry format */
 #define name    0
