@@ -1,0 +1,1 @@
+http://www.iro.umontreal.ca/~felipe/IFT2030-Automne2002/Complements/tinyc.c

@@ -1,156 +1,33 @@
-# tiny-c
-I am an idiot
+# Building a compiler
+I want to build a compiler for a long time. After looking for minimal examples, as I don't read documentation, I found some examples.
 
-https://ia801008.us.archive.org/19/items/dr_dobbs_journal_vol_05_201803/dr_dobbs_journal_vol_05.pdf (page 190 in pdf, 176 in footer)
+# The Plan
+I'll take the tiny c by Feely, and first implement the VM to compile to x84-64 ASM. Because the VM is so simple I think I can do this, It is also a good excercise to get my x84 ASM back up to speed. Then I hope to extend with custom variables and pointers (for inspiration for this I hope to use Ron Cain's work).
 
-# Planning
- - [ ] Copy over existing compiler as much as possible using int64
- - [ ] Add `#DEFINE` `#IFDEF <name>` `#IFNDEF <name>` and `#ENDIF` to be able to reuse header files
- - [ ] Add support for ANSI function declaration instead of K&R
- - [ ] Add `void` return type
- - [ ] Add function return type if its not there yet
- - [ ] Enums, to make the compiler easier
- - [ ] Structs? (I already declared that I am an idiot)
+## VM functions to ASM-ize
+ - [ ] IFETCH
+ - [ ] ISTORE
+ - [ ] IPUSH
+ - [ ] IPOP
+ - [ ] IADD
+ - [ ] ISUB
+ - [ ] ILT
+ - [ ] JMP
+ - [ ] JZ
+ - [ ] JNZ
 
+## Functionality to add
+ - [ ] More boolean operations
+ - [ ] Variables
+ - [ ] Pointers
+ - [ ] 
+ - [ ] 
+ - [ ] 
+ - [ ] 
 
-# Functions defined in code
-+: Implementation can differ
-*: Not recompilable
--: Not complete
- - [x] main() -
- - [x] parse() -
- - [ ] dumplits()
- - [ ] dumpglbs()
- - [ ] errorsummary()
- - [ ] ask()
- - [ ] openout()
- - [x] openin()
- - [ ] doinclude()
- - [ ] closeout()
- - [ ] declglb(typ)
- - [ ] declloc(typ)
- - [ ] needsub()
- - [x] newfunc() -
- - [ ] getarg(t)
- - [ ] statement()
- - [ ] ns()
- - [ ] compound()
- - [ ] doif()
- - [ ] dowhile()
- - [ ] doreturn()
- - [ ] dobreak()
- - [ ] docont()
- - [ ] doasm()
- - [ ] callfunction(ptr)
- - [ ] junk()
- - [ ] endstr()
- - [ ] illname()
- - [ ] multidef(sname)
- - [ ] needbrack(str)
- - [ ] needlval()
- - [ ] findglb(sname)
- - [ ] findloc(sname)
- - [ ] addglb(sname, id, typ, value)
- - [ ] addloc(sname,id,typ,value)
- - [ ] symname(sname)
- - [ ] getlabel()
- - [ ] printlabel(label)
- - [ ] alpha(c)
- - [ ] numeric(c)
- - [ ] an(c)
- - [x] pl(str)
- - [ ] addwhile(ptr)
- - [ ] delwhile()
- - [ ] readwhile()
- - [x] ch()
- - [x] nch()
- - [x] gch()
- - [x] kill()
- - [ ] inbyte()
- - [ ] inchar()
- - [ ] inline()
- - [ ] keepch(c)
- - [ ] preprocess()
- - [ ] addmac()
- - [ ] putmac(c)
- - [ ] findmac(sname)
- - [ ] outbyte(c)
- - [ ] outstr(ptr)
- - [ ] nl()
- - [ ] tab()
- - [ ] error(ptr)
- - [ ] ol(ptr)
- - [ ] ot(ptr)
- - [ ] streq(str1,str2)
- - [ ] astreq(str1,str2,len)
- - [ ] match(lit)
- - [ ] amatch(lit, len)
- - [ ] blanks()
- - [ ] outdec()
- - [ ] expression()
- - [ ] heir1(lval)
- - [ ] heir2(lval)
- - [ ] heir3(lval)
- - [ ] heir4(lval)
- - [ ] heir5(lval)
- - [ ] heir6(lval)
- - [ ] heir7(lval)
- - [ ] heir8(lval)
- - [ ] heir9(lval)
- - [ ] heir10(lval)
- - [ ] heir11(lval)
- - [ ] primary(lval)
- - [ ] store(lval)
- - [ ] rvalue(lval)
- - [ ] test(label)
- - [ ] constant(val)
- - [ ] number(val)
- - [ ] pstr(val)
- - [ ] qstr(val)
- - [ ] comment()
- - [ ] header()
- - [ ] trailer()
- - [ ] getmem(sym)
- - [ ] getloc(sym)
- - [ ] putmem(sym)
- - [ ] putstk(typeobj)
- - [ ] indirect(typeobj)
- - [ ] swap()
- - [ ] immed()
- - [ ] push()
- - [ ] pop()
- - [ ] swapstk()
- - [ ] call(sname)
- - [ ] ret()
- - [ ] callstk()
- - [ ] jump(label)
- - [ ] testjumt(label)
- - [ ] defbyte()
- - [ ] defstorage()
- - [ ] defword()
- - [ ] modstk(newsp)
- - [ ] doublereg()
- - [ ] add()
- - [ ] sub()
- - [ ] mult()
- - [ ] div()
- - [ ] mod()
- - [ ] or()
- - [ ] xor()
- - [ ] and()
- - [ ] asr()
- - [ ] asl()
- - [ ] neg()
- - [ ] com()
- - [ ] inc()
- - [ ] dec()
- - [ ] eq()
- - [ ] ne()
- - [ ] lt()
- - [ ] le()
- - [ ] gt()
- - [ ] ge()
- - [ ] ult()
- - [ ] ule()
- - [ ] ugt()
- - [ ] uge()
+# Sources
+## Tiny c by Marc Feeley (2001) (virtual folder)
+This is an educational example of a small c dialect that compiles to a custom vm that works stack based. I like the lexer and parser that are used. It has a big limitation that it only has 26 int variables [a-z].
+
+## Tiny c by Ron Cain (1980) (article folder)
+This is a minimal c implementation for 8080 based systems. It has what I think the minimal syntax, and is also self compiling (which is something I hope to achieve). It compiles to assembly, but the parser, and lexer are way more intertwined, and tbh too complex for me to fully understand. It doesn't have enums, So I hope to add that.
