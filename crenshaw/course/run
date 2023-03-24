@@ -1,0 +1,5 @@
+#! /bin/bash
+
+nasm -f elf64 assembly.s
+ld assembly.o
+./a.out

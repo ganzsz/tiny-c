@@ -1,0 +1,1 @@
+Assemble: `nasm -f elf64 <path>`
