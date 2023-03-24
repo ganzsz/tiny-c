@@ -119,9 +119,18 @@ end;
 {---------------------------------------------------------------}
 { Parse and Translate a Math Factor }
 
+{forward declaration}
+procedure Expression; Forward;
+
 procedure Factor;
 begin
-EmitLn('MOV R8, ' + GetNum + TAB + ' ; Move num to R8');
+  if Look = '(' then begin
+    Match('(');
+    Expression;
+    Match(')');
+    end
+  else
+    EmitLn('MOV R8, ' + GetNum + TAB + ' ; Move num to R8');
 end;
 
 
@@ -193,13 +202,23 @@ begin
 end;
 
 
-{---------------------------------------------------------------}
+{--------------------------------------------------------------}
+{ Recognize an Addop }
+
+function IsAddop(c: char): boolean;
+begin
+   IsAddop := c in ['+', '-'];
+end;
+{--------------------------------------------------------------}
 { Parse and Translate an Expression }
 
 procedure Expression;
 begin
-   Term;
-   while Look in ['+', '-'] do begin
+   if IsAddop(Look) then
+      EmitLn('MOV R8,0        ;Found + or - so we start with 0 in case of negation')
+   else
+      Term;
+   while IsAddop(Look) do begin
     EmitLn('PUSH R8' + TAB);
     case Look of
       '+': Add;
@@ -274,7 +293,7 @@ end;
   form:
   <expression>  ::= <term> [<addop> <term>]*
   <term>        ::= <factor> [<mulop> <factor>]*
-  <factor>      ::= 0-9
+  <factor>      ::= [+|-](<expression>) | [+|-]0-9
   <addop>       ::= +|-
   <mulop>       ::= *|/
 }

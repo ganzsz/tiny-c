@@ -3,19 +3,30 @@ global      _start
 
 _start: 
 ; ============== THE GENERATED PROGRAM ==============
-	MOV R8, 6	 ; Move num to R8
-	PUSH R8
-	MOV R8, 3	 ; Move num to R8
-	POP RAX       ; Top half
-	MOV RDX, 0    ; Bot half
-	IDIV R8       ; Divide above by R8
-	MOV R8, RAX   ; Store result in R8
+	MOV R8,0        ;Found + or - so we start with 0 in case of negation
 	PUSH R8	
-	MOV R8, 2	 ; Move num to R8
+	MOV R8, 1	 ; Move num to R8
+	POP R9
+	SUB R8, R9
+	NEG R8
+	PUSH R8	
+	MOV R8, 3	 ; Move num to R8
 	PUSH R8
 	MOV R8, 2	 ; Move num to R8
 	POP R9
 	IMUL R8,R9
+	PUSH R8
+	MOV R8, 8	 ; Move num to R8
+	PUSH R8
+	MOV R8, 4	 ; Move num to R8
+	POP RAX       ; Top half
+	MOV RDX, 0    ; Bot half
+	IDIV R8       ; Divide above by R8
+	MOV R8, RAX   ; Store result in R8
+	POP RAX       ; Top half
+	MOV RDX, 0    ; Bot half
+	IDIV R8       ; Divide above by R8
+	MOV R8, RAX   ; Store result in R8
 	POP R9
 	ADD R8, R9
 ; ============== END GENERATED PROGRAM ==============
