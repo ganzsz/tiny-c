@@ -117,11 +117,54 @@ end;
 
 
 {---------------------------------------------------------------}
-{ Parse and Translate a Term }
+{ Parse and Translate a Math Factor }
+
+procedure Factor;
+begin
+EmitLn('MOV R8, ' + GetNum + TAB + ' ; Move num to R8');
+end;
+
+
+{--------------------------------------------------------------}
+{ Recognize and Translate a Multiply }
+
+procedure Multiply;
+begin
+   Match('*');
+   Factor;
+   EmitLn('POP R9');
+   EmitLn('IMUL R8,R9');
+end;
+
+
+{-------------------------------------------------------------}
+{ Recognize and Translate a Divide }
+
+procedure Divide;
+begin
+   Match('/');
+   Factor;
+   EmitLn('POP RAX       ; Top half');
+   EmitLn('MOV RDX, 0    ; Bot half');
+   EmitLn('IDIV R8       ; Divide above by R8');
+   EmitLn('MOV R8, RAX   ; Store result in R8')
+end;
+
+
+{---------------------------------------------------------------}
+{ Parse and Translate a Math Term }
 
 procedure Term;
 begin
-EmitLn('MOV RDX, ' + GetNum + TAB + ' ; Move num to RDX')
+   Factor;
+   while Look in ['*', '/'] do begin
+      EmitLn('PUSH R8');
+      case Look of
+       '*': Multiply;
+       '/': Divide;
+      else Expected('Mulop');
+      end;
+   end;
 end;
 
 
@@ -132,8 +175,8 @@ procedure Add;
 begin
    Match('+');
    Term;
-   EmitLn('POP RAX');
-   EmitLn('ADD RDX, RAX');
+   EmitLn('POP R9');
+   EmitLn('ADD R8, R9');
 end;
 
 
@@ -144,26 +187,20 @@ procedure Subtract;
 begin
    Match('-');
    Term;
-   EmitLn('POP RAX');
-   EmitLn('SUB RDX, RAX');
-   EmitLn('NEG RDX');
+   EmitLn('POP R9');
+   EmitLn('SUB R8, R9');
+   EmitLn('NEG R8');
 end;
 
 
 {---------------------------------------------------------------}
-{
-  form:
-  <expression> ::= <term> [<addop> <term>]*
-  <term> ::= 0-9
-  <addop> ::= +|-
-}
 { Parse and Translate an Expression }
 
 procedure Expression;
 begin
    Term;
    while Look in ['+', '-'] do begin
-    EmitLn('PUSH RDX' + TAB);
+    EmitLn('PUSH R8' + TAB);
     case Look of
       '+': Add;
       '-': Subtract;
@@ -199,10 +236,10 @@ begin
 Write('; ============== END GENERATED PROGRAM ==============');
 WriteLn;
 WriteLn;
-{Magic to print RDX}
-EmitLn('; Print register RDX');
-EmitLn('ADD RDX, 48'+TAB+' ; convert to ascii');
-EmitLn('MOV [output], RDX'+TAB+' ; store in output');
+{Magic to print R8}
+EmitLn('; Print register R8');
+EmitLn('ADD R8, 48'+TAB+' ; convert to ascii');
+EmitLn('MOV [output], R8'+TAB+' ; store in output');
 EmitLn('MOV RDX,1'+TAB+' ; length to print');
 EmitLn('MOV RCX, output'+TAB+' ; point to output');
 EmitLn('MOV RBX,1');
@@ -233,6 +270,14 @@ begin
 GetChar;
 end;
 
+{
+  form:
+  <expression>  ::= <term> [<addop> <term>]*
+  <term>        ::= <factor> [<mulop> <factor>]*
+  <factor>      ::= 0-9
+  <addop>       ::= +|-
+  <mulop>       ::= *|/
+}
 
 {--------------------------------------------------------------}
 { Main Program }

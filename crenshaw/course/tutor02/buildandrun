@@ -1,8 +1,8 @@
 #! /bin/bash
 
-echo "building"
-fpc -ocradle.a cradle.pas
-echo "compiling input file "
-cat input | ./cradle.a > assembly.s
-echo "running generated asm "
+echo "building" && \
+fpc -ocradle.a cradle.pas && \
+echo "compiling input file " && \
+cat input | ./cradle.a > assembly.s && \
+echo "running generated asm " && \
 ../run
