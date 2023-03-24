@@ -121,7 +121,7 @@ end;
 
 procedure Term;
 begin
-EmitLn('MOV EDX, ' + GetNum + TAB + ' ; Move num to EDX')
+EmitLn('MOV RDX, ' + GetNum + TAB + ' ; Move num to RDX')
 end;
 
 
@@ -132,7 +132,8 @@ procedure Add;
 begin
    Match('+');
    Term;
-   EmitLn('ADD EDX, EAX');
+   EmitLn('POP RAX');
+   EmitLn('ADD RDX, RAX');
 end;
 
 
@@ -143,23 +144,32 @@ procedure Subtract;
 begin
    Match('-');
    Term;
-   EmitLn('SUB EDX, EAX');
-   EmitLn('NEG EDX');
+   EmitLn('POP RAX');
+   EmitLn('SUB RDX, RAX');
+   EmitLn('NEG RDX');
 end;
 
 
 {---------------------------------------------------------------}
+{
+  form:
+  <expression> ::= <term> [<addop> <term>]*
+  <term> ::= 0-9
+  <addop> ::= +|-
+}
 { Parse and Translate an Expression }
 
 procedure Expression;
 begin
    Term;
-   EmitLn('MOV EAX, EDX' + TAB);
-   case Look of
-    '+': Add;
-    '-': Subtract;
-   else Expected('Addop');
-   end;
+   while Look in ['+', '-'] do begin
+    EmitLn('PUSH RDX' + TAB);
+    case Look of
+      '+': Add;
+      '-': Subtract;
+    else Expected('Addop');
+    end;
+  end;
 end;
 {--------------------------------------------------------------}
 
@@ -189,16 +199,16 @@ begin
 Write('; ============== END GENERATED PROGRAM ==============');
 WriteLn;
 WriteLn;
-{Magic to print EDX}
-EmitLn('; Print register EDX');
-EmitLn('ADD EDX, 48'+TAB+' ; convert to ascii');
-EmitLn('MOV [output], EDX'+TAB+' ; store in output');
-EmitLn('MOV EDX,1'+TAB+' ; length to print');
-EmitLn('MOV ECX, output'+TAB+' ; point to output');
-EmitLn('MOV EBX,1');
-EmitLn('MOV EAX,4');
+{Magic to print RDX}
+EmitLn('; Print register RDX');
+EmitLn('ADD RDX, 48'+TAB+' ; convert to ascii');
+EmitLn('MOV [output], RDX'+TAB+' ; store in output');
+EmitLn('MOV RDX,1'+TAB+' ; length to print');
+EmitLn('MOV RCX, output'+TAB+' ; point to output');
+EmitLn('MOV RBX,1');
+EmitLn('MOV RAX,4');
 EmitLn('INT 0x80');
-EmitLn('MOV EAX,1');
+EmitLn('MOV RAX,1');
 EmitLn('INT 0x80');
 WriteLn;
 

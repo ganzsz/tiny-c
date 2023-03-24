@@ -3,22 +3,27 @@ global      _start
 
 _start: 
 ; ============== THE GENERATED PROGRAM ==============
-	MOV EDX, 5	 ; Move num to EDX
-	MOV EAX, EDX	
-	MOV EDX, 2	 ; Move num to EDX
-	SUB EDX, EAX
-	NEG EDX
+	MOV RDX, 5	 ; Move num to RDX
+	PUSH RDX	
+	MOV RDX, 2	 ; Move num to RDX
+	POP RAX
+	SUB RDX, RAX
+	NEG RDX
+	PUSH RDX	
+	MOV RDX, 4	 ; Move num to RDX
+	POP RAX
+	ADD RDX, RAX
 ; ============== END GENERATED PROGRAM ==============
 
-	; Print register EDX
-	ADD EDX, 48	 ; convert to ascii
-	MOV [output], EDX	 ; store in output
-	MOV EDX,1	 ; length to print
-	MOV ECX, output	 ; point to output
-	MOV EBX,1
-	MOV EAX,4
+	; Print register RDX
+	ADD RDX, 48	 ; convert to ascii
+	MOV [output], RDX	 ; store in output
+	MOV RDX,1	 ; length to print
+	MOV RCX, output	 ; point to output
+	MOV RBX,1
+	MOV RAX,4
 	INT 0x80
-	MOV EAX,1
+	MOV RAX,1
 	INT 0x80
 
 	; Stop gracefully
