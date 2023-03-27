@@ -7,16 +7,20 @@ New plan. I start with the crenshaw course because i will make the asm code ther
 I'll take the tiny c by Feely, and first implement the VM to compile to x84-64 ASM. Because the VM is so simple I think I can do this, It is also a good excercise to get my x84 ASM back up to speed. Then I hope to extend with custom variables and pointers (for inspiration for this I hope to use Ron Cain's work).
 
 ## VM functions to ASM-ize
- - [ ] IFETCH
- - [ ] ISTORE
- - [ ] IPUSH
- - [ ] IPOP
- - [ ] IADD
- - [ ] ISUB
- - [ ] ILT
- - [ ] JMP
- - [ ] JZ
- - [ ] JNZ
+ - [ ] VAR
+ - [ ] CST
+ - [ ] ADD
+ - [ ] SUB
+ - [ ] LT
+ - [ ] SET
+ - [ ] IF1
+ - [ ] IF2
+ - [ ] WHILE
+ - [ ] DO
+ - [ ] EMPTY
+ - [ ] SEQ
+ - [ ] EXPR
+ - [ ] PROG
 
 ## Functionality to add
  - [ ] More boolean operations
