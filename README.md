@@ -2,6 +2,8 @@
 I want to build a compiler for a long time. After looking for minimal examples, as I don't read documentation, I found some examples.
 
 # The Plan
+New plan. I start with the crenshaw course because i will make the asm code there. Then I can reuse this asm in the virtual compiler to make it real. Then i'll add things to this compiler to make it work with th article compiler
+
 I'll take the tiny c by Feely, and first implement the VM to compile to x84-64 ASM. Because the VM is so simple I think I can do this, It is also a good excercise to get my x84 ASM back up to speed. Then I hope to extend with custom variables and pointers (for inspiration for this I hope to use Ron Cain's work).
 
 ## VM functions to ASM-ize
