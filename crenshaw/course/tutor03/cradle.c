@@ -21,7 +21,11 @@
 
 char Look; // Lookahead Character
 
+// Store the names of globals (all int for now)
+char Globals[26] = {'\0'};
+
 // --------------------------------------------------------------
+// Helper to convert a char to a char* ending in \0
 char *charToStr(char c)
 {
   char *ptr = malloc(2 * sizeof(char));
@@ -29,6 +33,18 @@ char *charToStr(char c)
   ptr[1] = '\0';
   return ptr;
 }
+
+// --------------------------------------------------------------
+// Checking if a global exists and defining one if it doesn't
+void declareGlobal(char name)
+{
+  int i = -0;
+  char found = 0;
+  while(Globals[++i] != '\0') if(Globals[i] == name) return;
+  Globals[i] = name;
+}
+
+
 
 // --------------------------------------------------------------
 // Read New Character From Input Stream
@@ -157,7 +173,12 @@ void Factor()
     Match(')');
   }
   else if (IsAlpha(Look))
-    EmitLn("");
+  { //             01234567890
+    char line[] = "MOV R8, [x]\t ; Retrive var";
+    line[9] = Look;
+    EmitLn(line);
+    declareGlobal(Look);
+  }
   else
   { //            0123456789 012345678901234567890
     char Line[] = "MOV R8, 0\t ; Move num to R8";
@@ -273,6 +294,23 @@ void Expression()
 }
 // --------------------------------------------------------------
 
+void emitPrintFunctions()
+{
+  FILE *fptr;
+  fptr = fopen("printfunctions.s", "r");
+  if(fptr != NULL)
+  {
+    char c;
+    c = fgetc(fptr);
+    while(c != EOF)
+    {
+      printf("%c", c);
+      c = fgetc(fptr);
+    }
+    fclose(fptr);
+  }
+}
+
 // --------------------------------------------------------------
 // WriteHeader
 
@@ -280,6 +318,7 @@ void WriteHeader()
 {
   printf("section     .text\n");
   printf("global      _start\n\n");
+  emitPrintFunctions();
   printf("_start: \n");
   printf("; ============== THE GENERATED PROGRAM ==============\n");
 }
@@ -289,20 +328,18 @@ void WriteHeader()
 
 void EmitFooter()
 {
-  printf("; ============== } GENERATED PROGRAM ==============\n\n");
+  printf("; ============== END GENERATED PROGRAM ==============\n\n");
   // Magic to print R8
   EmitLn("; Print register R8");
-  EmitLn("ADD R8, 48\t ; convert to ascii");
-  EmitLn("MOV [output], R8\t ; store in output");
-  EmitLn("MOV RDX,1\t ; length to print");
-  EmitLn("MOV RCX, output\t ; point to output");
-  EmitLn("MOV RBX,1");
-  EmitLn("MOV RAX,4");
-  EmitLn("INT 0x80");
-  EmitLn("MOV RAX,1");
-  EmitLn("INT 0x80");
+  EmitLn("MOV RAX, R8\t ; Print R8");
+  EmitLn("CALL _printi\t; As int");
   printf("\n");
 
+  EmitLn("; Print \\n");
+  EmitLn("MOV RAX, 10\t ; Print \\n");
+  EmitLn("CALL _printc\t; As char");
+  
+  printf("\n");
   // stop program
   EmitLn("; Stop gracefully");
   EmitLn("mov rax, 60       ; exit(");
@@ -311,7 +348,12 @@ void EmitFooter()
 
   // Reserve memory
   printf("section     .data\n");
-  printf("\toutput     db  0,0xa\n"); // Reserved for outputting on eof
+  printf("\tmsg    db  0x00"); // Reserved for outputting on eof
+
+  // Reserver memory for the constants
+  // for(int i=0; i<sizeof(Globals); i++)
+  //   if(Globals[i]=='\0') break;
+  //   else printf("\t%c      dw 0x0000", Globals[i]);
 }
 
 // --------------------------------------------------------------
