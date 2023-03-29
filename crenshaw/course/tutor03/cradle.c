@@ -14,7 +14,8 @@
 
 // --------------------------------------------------------------
 // Constant Declarations
-
+#define MAX_AMOUNT_GLOBALS 26
+#define MAX_AMOUNT_SUBROUT 26
 
 // --------------------------------------------------------------
 // Variable Declarations
@@ -22,7 +23,8 @@
 char Look; // Lookahead Character
 
 // Store the names of globals (all int for now)
-char Globals[26] = {'\0'};
+char Globals[MAX_AMOUNT_GLOBALS] = {'\0'};
+char Subroutines[MAX_AMOUNT_SUBROUT] = {'\0'};
 
 // --------------------------------------------------------------
 // Helper to convert a char to a char* ending in \0
@@ -36,12 +38,25 @@ char *charToStr(char c)
 
 // --------------------------------------------------------------
 // Checking if a global exists and defining one if it doesn't
+// Forward declaration
+void Abort(char* s);
+
 void declareGlobal(char name)
 {
-  int i = -0;
-  char found = 0;
-  while(Globals[++i] != '\0') if(Globals[i] == name) return;
+  int i = 0;
+  while((i-1)<MAX_AMOUNT_GLOBALS && Globals[i] != '\0') if(Globals[i++] == name) {return;}
+  if((i-1) == sizeof(Globals)) Abort("Max number of constants");
   Globals[i] = name;
+}
+
+// --------------------------------------------------------------
+// Checking if a subroutine exists and defining one if it doesn't
+void declareSubroutine(char name)
+{
+  int i = 0;
+  while((i-1)<MAX_AMOUNT_SUBROUT && Subroutines[i] != '\0') if(Subroutines[i++] == name) {return;}
+  if((i-1) == sizeof(Subroutines)) Abort("Max number of constants");
+  Subroutines[i] = name;
 }
 
 
@@ -158,6 +173,33 @@ void EmitLn(char *s)
   printf("\n");
 }
 
+
+//---------------------------------------------------------------}
+// Parse and Translate an Identifier }
+
+void Ident()
+{
+  char name = GetName();
+  if(Look == '(') // We're dealing with a function call
+  {
+    Match('(');
+    Match(')'); 
+    //             01234567890123456789
+    char line[] = "CALL __x\t; Call subroutine";
+    line[7] = name;
+    EmitLn(line);
+    declareSubroutine(name);
+  } else {      // A variable call
+    //             01234567890
+    char line[] = "MOV R8, [x]\t ; Retrive var";
+    line[9] = name;
+    EmitLn(line);
+    declareGlobal(name);
+  }
+}
+
+
+
 // --------------------------------------------------------------
 // Parse and Translate a Math Factor
 
@@ -173,14 +215,11 @@ void Factor()
     Match(')');
   }
   else if (IsAlpha(Look))
-  { //             01234567890
-    char line[] = "MOV R8, [x]\t ; Retrive var";
-    line[9] = Look;
-    EmitLn(line);
-    declareGlobal(Look);
+  { 
+    Ident();
   }
   else
-  { //            0123456789 012345678901234567890
+  { //             0123456789 012345678901234567890
     char Line[] = "MOV R8, 0\t ; Move num to R8";
     char c = GetNum();
     Line[8] = c;
@@ -195,6 +234,7 @@ void Multiply()
 {
   Match('*');
   Factor();
+  EmitLn("; *");
   EmitLn("POP R9");
   EmitLn("IMUL R8,R9");
 }
@@ -206,8 +246,9 @@ void Divide()
 {
   Match('/');
   Factor();
+  EmitLn("; /");
   EmitLn("POP RAX       ; Top half");
-  EmitLn("MOV RDX, 0    ; Bot half");
+  EmitLn("MOV RDX, 0    ; Bot half always 0");
   EmitLn("IDIV R8       ; Divide above by R8");
   EmitLn("MOV R8, RAX   ; Store result in R8");
 }
@@ -243,6 +284,7 @@ void Add()
 {
   Match('+');
   Term();
+  EmitLn("; +");
   EmitLn("POP R9");
   EmitLn("ADD R8, R9");
 }
@@ -254,6 +296,7 @@ void Subtract()
 {
   Match('-');
   Term();
+  EmitLn("; -");
   EmitLn("POP R9");
   EmitLn("SUB R8, R9");
   EmitLn("NEG R8");
@@ -292,6 +335,22 @@ void Expression()
     }
   }
 }
+
+
+//--------------------------------------------------------------}
+// Parse and Translate an Assignment Statement }
+
+void Assignment()
+{
+  char name = GetName();
+  Match('=');
+  Expression();
+  //             01234567890
+  char line[] = "MOV [x], R8\t ; Save result in register";
+  line[5] = name;
+  EmitLn(line);
+  declareGlobal(name);
+}
 // --------------------------------------------------------------
 
 void emitPrintFunctions()
@@ -312,9 +371,9 @@ void emitPrintFunctions()
 }
 
 // --------------------------------------------------------------
-// WriteHeader
+// EmitHeader
 
-void WriteHeader()
+void EmitHeader()
 {
   printf("section     .text\n");
   printf("global      _start\n\n");
@@ -324,7 +383,7 @@ void WriteHeader()
 }
 
 // --------------------------------------------------------------
-// WriteFooter
+// EmitFooter
 
 void EmitFooter()
 {
@@ -346,14 +405,21 @@ void EmitFooter()
   EmitLn("mov rdi, 0        ;   EXIT_SUCCESS");
   EmitLn("syscall           ; );");
 
+  // -----------------------------------------------------------------
+  // Defined functions:
+  for(int i=0; i<sizeof(Subroutines); i++)
+    if(Subroutines[i]=='\0') break;
+    else printf("__%c:\n\tret\n", Subroutines[i]);
+
+
   // Reserve memory
   printf("section     .data\n");
-  printf("\tmsg    db  0x00"); // Reserved for outputting on eof
+  printf("\tmsg    db  0x00\n"); // Reserved for outputting on eof
 
   // Reserver memory for the constants
-  // for(int i=0; i<sizeof(Globals); i++)
-  //   if(Globals[i]=='\0') break;
-  //   else printf("\t%c      dw 0x0000", Globals[i]);
+  for(int i=0; i<sizeof(Globals); i++)
+    if(Globals[i]=='\0') break;
+    else printf("\t%c      dw 0x0000\n", Globals[i]);
 }
 
 // --------------------------------------------------------------
@@ -368,10 +434,12 @@ void Init()
 // Main Program
 
 int main(){
-  WriteHeader();
+  EmitHeader();
   Init();
-  Expression();
+  Assignment();
   EmitFooter();
+  if(Look != '\n') 
+    Error("Expected EOL at end of file");
   return 0;
 }
 

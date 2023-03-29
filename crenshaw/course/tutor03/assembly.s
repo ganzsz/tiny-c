@@ -60,6 +60,7 @@ _start:
 	MOV R8,0        ;Found + or - so we start with 0 in case of negation
 	PUSH R8	
 	MOV R8, 1	 ; Move num to R8
+	; -
 	POP R9
 	SUB R8, R9
 	NEG R8
@@ -67,22 +68,27 @@ _start:
 	MOV R8, 3	 ; Move num to R8
 	PUSH R8
 	MOV R8, 2	 ; Move num to R8
+	; *
 	POP R9
 	IMUL R8,R9
 	PUSH R8
 	MOV R8, 8	 ; Move num to R8
 	PUSH R8
 	MOV R8, 4	 ; Move num to R8
+	; /
 	POP RAX       ; Top half
-	MOV RDX, 0    ; Bot half
+	MOV RDX, 0    ; Bot half always 0
 	IDIV R8       ; Divide above by R8
 	MOV R8, RAX   ; Store result in R8
+	; /
 	POP RAX       ; Top half
-	MOV RDX, 0    ; Bot half
+	MOV RDX, 0    ; Bot half always 0
 	IDIV R8       ; Divide above by R8
 	MOV R8, RAX   ; Store result in R8
+	; +
 	POP R9
 	ADD R8, R9
+	MOV [a], R8	 ; Save result in register
 ; ============== END GENERATED PROGRAM ==============
 
 	; Print register R8
@@ -99,3 +105,4 @@ _start:
 	syscall           ; );
 section     .data
 	msg    db  0x00
+	a      dw 0x0000
