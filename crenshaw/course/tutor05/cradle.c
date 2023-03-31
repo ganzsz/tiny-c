@@ -379,29 +379,29 @@ char IsAddop(char c)
 // --------------------------------------------------------------
 // Parse and Translate an Expression
 
-void Expression()
-{
-  if (IsAddop(Look))
-    EmitLn("MOV R8,0        ;Found + or - so we start with 0 in case of negation");
-  else
-    Term();
+// void Expression()
+// {
+//   if (IsAddop(Look))
+//     EmitLn("MOV R8,0        ;Found + or - so we start with 0 in case of negation");
+//   else
+//     Term();
 
-  while (IsAddop(Look))
-  {
-    EmitLn("PUSH R8\t");
-    switch (Look)
-    {
-    case '+':
-      Add();
-      break;
-    case '-':
-      Subtract();
-      break;
-    default:
-      Expected("Addop");
-    }
-  }
-}
+//   while (IsAddop(Look))
+//   {
+//     EmitLn("PUSH R8\t");
+//     switch (Look)
+//     {
+//     case '+':
+//       Add();
+//       break;
+//     case '-':
+//       Subtract();
+//       break;
+//     default:
+//       Expected("Addop");
+//     }
+//   }
+// }
 
 
 //--------------------------------------------------------------}
@@ -425,7 +425,7 @@ void Assignment()
 // Recognize and Translate an "other" (used to abnstract non control instructions)
 
 // forward dec
-void Block();
+void Block(char * breakLabel);
 
 void Other()
 {
@@ -441,22 +441,32 @@ void Condition()
   EmitLn("<condition>");
 }
 
-void If()
+// Parse and translate an expression
+// for now a dummy
+
+void Expression()
+{
+  EmitLn("<expression>");
+}
+
+void If(char* breakLabel)
 {
   char l1[MAX_LABEL_LEN], l2[MAX_LABEL_LEN];
   Match('i');
   Condition();
   MakeNewLabel(l1);
   strcopy(l1, l2, MAX_LABEL_LEN);
-  printf("\tJE %s\t ; Jump Equal (false) to endif\n", l1);
-  Block();
+  EmitLn("; IF");
+  printf("\tJE %s\t ; Jump Equal (false) to endif or else\n", l1);
+  Block(breakLabel);
   if(Look == 'l')// else
   {
     Match('l');
+    EmitLn("; ELSE");
     MakeNewLabel(l2);
     printf("\tJMP %s\t ; after this is else, so get out of if block \n", l2);
     PostLabel(l1);
-    Block();
+    Block(breakLabel);
   }
   Match('e');
   PostLabel(l2);
@@ -466,59 +476,143 @@ void While()
 {
   char l1[MAX_LABEL_LEN], l2[MAX_LABEL_LEN];
   Match ('w');
+  EmitLn("; WHILE");
   MakeNewLabel(l1);
   MakeNewLabel(l2);
   PostLabel(l1);
   Condition();
-  printf("\tJE %s\t ; Done with while if equal (0)\n");
-  Block();
+  printf("\tJE %s\t ; Done with while if equal (0)\n", l2);
+  Block(l2);
   Match('e');
-  printf("\tJMP %s\t ; Go back to begin of while\n");
+  printf("\tJMP %s\t ; Go back to begin of while\n", l1);
   PostLabel(l2);
 }
 
 // loop ( while(1))
 void Loop()
 {
-  char l[MAX_LABEL_LEN];
+  char l1[MAX_LABEL_LEN], l2[MAX_LABEL_LEN];
   Match('p');
-  MakeNewLabel(l);
-  PostLabel(l);
-  Block();
+  EmitLn("; WHILE");
+  MakeNewLabel(l1);
+  MakeNewLabel(l2);
+  PostLabel(l1);
+  Block(l2);
   Match('e');
-  printf("\tJMP %s\t ; Repeat\n", l);
+  printf("\tJMP %s\t ; Repeat\n", l1);
+  PostLabel(l2);
 }
 
 // do while repeat untill
 void Repeat()
 {
-  char l[MAX_LABEL_LEN];
+  char l1[MAX_LABEL_LEN], l2[MAX_LABEL_LEN];
+  MakeNewLabel(l1);
+  MakeNewLabel(l2);
   Match('r');
-  PostLabel(l);
-  Block();
+  EmitLn("; REPEAT");
+  PostLabel(l1);
+  Block(l2);
   Match('u');
   Condition();
-  printf("\tJNE %s\t ; Jump back while not 0\n");
+  printf("\tJNE %s\t ; Jump back while not 0\n", l1);
+  PostLabel(l2);
 }
 
-// --------------------------------------------------------------
-//. Recognize and translate a statement block
-
-void Block()
+// for i = l to h (for i in range(l, h))
+void For()
 {
+  char l1[MAX_LABEL_LEN], l2[MAX_LABEL_LEN];
+  Match('f');
+  MakeNewLabel(l1);
+  MakeNewLabel(l2);
+  char name = GetName();
+  declareGlobal(name);
+  Match('=');
+  EmitLn("; FOR");
+  Expression();
+  EmitLn("DEC R8\t ; We want to start one lower bc we increment in the check");
+                    //0213456789
+  char storeLine[] = "MOV [x], R8\t ; Save counter var for For";
+  storeLine[5] = name;
+  EmitLn(storeLine);
+  Expression();
+  EmitLn("PUSH R8\t ; Store the to on the stack");
+  PostLabel(l1);
+                   //01234567890123
+  char loadLine[] = "MOV R8, [x]\t ; Load counter var for For";
+  loadLine[9] = name;
+  EmitLn(loadLine);
+  EmitLn("INC R8\t; Increment counter var for For");
+  EmitLn("POP R9\t ; Load max For num in R9");
+  EmitLn("PUSH R9\t ; And store it");
+  EmitLn("CMP R9, R8\t ; See if we are ready to leave the loop");
+  printf("\tJG %s\t ; Jump if counter > max\n", l2);
+  Block(l2);
+  Match('e');
+  printf("\tJMP %s \t ; Return to start For loop\n", l1);
+  PostLabel(l2);
+}
+
+// Do x (repeat block x amount of times)
+void Do()
+{
+  char l1[MAX_LABEL_LEN], l2[MAX_LABEL_LEN], out[MAX_LABEL_LEN];
+  Match('d');
+  MakeNewLabel(l1);
+  MakeNewLabel(l2);
+  MakeNewLabel(out);
+  EmitLn("; DO");
+  Expression();
+  EmitLn("MOV CX, R8\t; CX is the register we compare");
+  PostLabel(l1);
+  EmitLn("DEC CX");
+  EmitLn("PUSH CX");
+  Block(out);
+  Match('e');
+  EmitLn("POP CX");
+  printf("\tJCXZ %s \t ; Jump out of loop if CX=zero \n", l2);
+  printf("\tJMP %s \t ; Repaet do\n", l1);
+  PostLabel(out);
+  EmitLn("POP CX\t ; Only hit when we break out of the loop");
+  PostLabel(l2);
+}
+
+// Break statement
+void Break(char* label)
+{
+  Match('b');
+  if(label[0] != '\0')
+    printf("\tJMP %s\t; Encountered a break\n", label);
+  else Abort("Encountered break outside of loop");
+}
+
+
+// --------------------------------------------------------------
+// Recognize and translate a statement block
+// <argument> breakLabel The label to jump to when encountering a break
+int blockCounter = 0;
+void Block(char * breakLabel)
+{
+  int thisBlock = blockCounter++;
+  printf("\t; START BLOCK %i\n", thisBlock);
   while (Look != 'e' && // End
          Look != 'l' && // Else
          Look != 'u')   // Untill
   {
     switch (Look)
     {
-      case 'i': If(); break;
+      case 'i': If(breakLabel); break;
       case 'w': While(); break;
       case 'p': Loop(); break;
       case 'r': Repeat(); break;
+      case 'f': For(); break;
+      case 'd': Do(); break;
+      case 'b': Break(breakLabel);
       default: Other(); break;
     }
   }
+  printf("\t; START BLOCK %i\n", thisBlock++);
 }
 
 // --------------------------------------------------------------
@@ -526,7 +620,7 @@ void Block()
 
 void Program()
 {
-  Block();
+  Block("");
   if (Look != 'e') Expected("End");
   EmitLn("END");
 }
