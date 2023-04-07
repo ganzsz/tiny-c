@@ -1,0 +1,9 @@
+#! /bin/bash
+
+echo "building" && \
+gcc cradle.c && \
+echo "compiling input file " && \
+cat input | ./a.out > assembly.s && \
+echo "Not running it now"
+# echo "running generated asm " && \
+# ../run
