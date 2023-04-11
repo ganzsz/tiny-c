@@ -39,6 +39,8 @@ char   KWCode[] = {'x',  'i' , 'l'   , 'e'    , 'e'  };
  * Variable Declarations
 */
 
+int inputLine = 1;
+
 char Look;   // Lookahead Character
 char Token;  // Encoded Token
 char Value[17]; // Unencoded Token
@@ -140,13 +142,14 @@ void declareGlobal(char* name)
 void GetChar()
 {
   Look = getc(stdin);
+  if(Look == '\n') inputLine++;
 }
 
 // Report an Error
 void Error(char *s)
 {
-  printf("\n");
-  printf("Error: %s.\n", s);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Error: %s. On line %i\n", s, inputLine);
 }
 
 // Report Error and Halt
@@ -220,7 +223,6 @@ void SkipWhite()
 // Skip over EOL
 void Fin()
 {
-  if(Look == '\r') getchar(); // MS safer
   if(Look == '\n') GetChar();
   SkipWhite();
 }

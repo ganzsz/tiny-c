@@ -73,24 +73,3 @@ L0:
 	; START BLOCK 2
 	MOV R8, 0	 ; Move num to R8
 	MOV [_var_b], R8	 ; Save result in memory
-	; END BLOCK 2
-L1:
-	; END BLOCK 0
-; ============== END GENERATED PROGRAM ==============
-
-	; Print register R8
-	MOV RAX, R8	 ; Print R8
-	CALL _printi	; As int
-
-	; Print \n
-	MOV RAX, 10	 ; Print \n
-	CALL _printc	; As char
-
-	; Stop gracefully
-	mov rax, 60       ; exit(
-	mov rdi, 0        ;   EXIT_SUCCESS
-	syscall           ; );
-section     .data
-	msg    db  0x00
-	_var_test dw 0x0000
-	_var_b dw 0x0000
