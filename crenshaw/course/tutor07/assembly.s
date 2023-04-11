@@ -58,43 +58,23 @@ printidone:
 _start: 
 ; ============== THE GENERATED PROGRAM ==============
 	; START BLOCK 0
-	MOV R8, 1	 ; Move num to R8
-	PUSH R8
-	MOV R8, 2	 ; Move num to R8
-	PUSH R8
-	MOV R8, 4	 ; Move num to R8
-	; *
-	POP R9
-	IMUL R8,R9
-	; +
-	POP R9
-	ADD R8, R9
-	MOV [a], R8	 ; Save result in register
-	; Switch
-	MOV R8, [a]	 ; Retrieve var
-	PUSH R8	 ; Push expression to test against
+	MOV R8, 123	 ; Move num to R8
+	MOV [_var_test], R8	 ; Save result in memory
+	; IF
+	cmp R8, 0	 ; FORNOWTEMPOART
+	JE L0	 ; Jump Equal (false) to endif or else
 	; START BLOCK 1
+	MOV R8, [_var_test]	 ; Retrieve var
+	MOV [_var_b], R8	 ; Save result in memory
 	; END BLOCK 1
-	; Case
-	MOV R8, 1	 ; Move num to R8
-	 <Compare R8, [RSP]
-	JNE L1	 ; Go to next statement if not equal
+	; ELSE
+	JMP L1	 ; after this is else, so get out of if block 
+L0:
 	; START BLOCK 2
-	MOV R8, 2	 ; Move num to R8
-	MOV [x], R8	 ; Save result in register
+	MOV R8, 0	 ; Move num to R8
+	MOV [_var_b], R8	 ; Save result in memory
 	; END BLOCK 2
 L1:
-	; Case
-	MOV R8, 2	 ; Move num to R8
-	 <Compare R8, [RSP]
-	JNE L2	 ; Go to next statement if not equal
-	; START BLOCK 3
-	MOV R8, 3	 ; Move num to R8
-	MOV [x], R8	 ; Save result in register
-	; END BLOCK 3
-L2:
-L0:
-	POP R8	 ; Clean up stack
 	; END BLOCK 0
 ; ============== END GENERATED PROGRAM ==============
 
@@ -112,5 +92,5 @@ L0:
 	syscall           ; );
 section     .data
 	msg    db  0x00
-	a      dw 0x0000
-	x      dw 0x0000
+	_var_test dw 0x0000
+	_var_b dw 0x0000

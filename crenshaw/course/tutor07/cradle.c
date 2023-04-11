@@ -23,26 +23,28 @@
 */
 
 typedef char Symbol[9];
-Symbol SymTab[1000];
-Symbol* TabPtr = SymTab;
 
 /**
- * Constant variables
+ * Constant Definitions
 */
 
 #define MAX_AMOUNT_GLOBALS 26
 #define MAX_AMOUNT_SUBROUT 26
-
 #define MAX_LABEL_LEN 10
+
+Symbol KWList[] = {"\0", "IF", "ELSE", "ENDIF", "END"};
+char   KWCode[] = {'x',  'i' , 'l'   , 'e'    , 'e'  };
 
 /**
  * Variable Declarations
 */
 
 char Look;   // Lookahead Character
+char Token;  // Encoded Token
+char Value[17]; // Unencoded Token
 int  LabelCount; // Label Counter
-char Globals[MAX_AMOUNT_GLOBALS] = {'\0'};
-char Subroutines[MAX_AMOUNT_SUBROUT] = {'\0'};
+char Globals[1000] = {'\0'};
+// Symbol Subroutines[MAX_AMOUNT_SUBROUT] = {};
 
 // --------------------------------------------------------------
 // Helper to convert a char to a char* ending in \0
@@ -64,6 +66,14 @@ void strcopy(char* from, char* to, int maxLen)
   }
 }
 
+// dangerous strcomp
+char strcomp(char* s1, char* s2)
+{
+  for(int i = 0; s1[i]!='\0' && s2[i]!='\0'; i++)
+    if(s1[i]!=s2[i]) return 0;
+  return 1;
+}
+
 // --------------------------------------------------------------
 // Helper to see if char is in char array
 
@@ -79,23 +89,49 @@ char inArray(char c, char* a, int len)
 void Abort(char* s);
 
 // Checking if a global exists and defining one if it doesn't
-void declareGlobal(char name)
+void declareGlobal(char* name)
 {
-  int i = 0;
-  while((i-1)<MAX_AMOUNT_GLOBALS && Globals[i] != '\0') if(Globals[i++] == name) {return;}
-  if((i-1) == sizeof(Globals)) Abort("Max number of constants");
-  Globals[i] = name;
+  int i = 0, n = 0;
+  char found = 1;
+  for(;;)
+  {
+    if(Globals[i] == '\0')
+    {
+      if(n>0 && found) break;
+      if(Globals[i+1] == '\0')
+      {
+        if(i>0)i++;
+        found = 0;
+        break;
+      }
+      found = 1;
+      n = 0;
+    } else {
+      if(Globals[i] != name[n]) found = 0;
+      n++;
+    }
+    i++; 
+  }
+  if(!found)
+  {
+    for(n=0; name[n] != '\0'; n++)
+    {
+      Globals[i] = name[n];
+      i++;
+    }
+    Globals[i] = '\0';
+  }
 }
 
 // --------------------------------------------------------------
 // Checking if a subroutine exists and defining one if it doesn't
-void declareSubroutine(char name)
-{
-  int i = 0;
-  while((i-1)<MAX_AMOUNT_SUBROUT && Subroutines[i] != '\0') if(Subroutines[i++] == name) {return;}
-  if((i-1) == sizeof(Subroutines)) Abort("Max number of constants");
-  Subroutines[i] = name;
-}
+// void declareSubroutine(char name)
+// {
+//   int i = 0;
+//   while((i-1)<MAX_AMOUNT_SUBROUT && Subroutines[i] != '\0') if(Subroutines[i++] == name) {return;}
+//   if((i-1) == sizeof(Subroutines)) Abort("Max number of constants");
+//   Subroutines[i] = name;
+// }
 
 
 
@@ -190,6 +226,22 @@ void Fin()
 }
 
 // --------------------------------------------------------------
+// Table Lookup
+int Lookup()
+{
+  int n = 3;
+  while (n>0)
+  {
+    if(strcomp(Value, KWList[n]))
+    {
+      return n;
+    }
+    else n--;
+  }
+  return n;
+}
+
+// --------------------------------------------------------------
 // Match a Specific Input Character
 void Match(char x)
 {
@@ -200,24 +252,47 @@ void Match(char x)
 
 // --------------------------------------------------------------
 // Get an Identifier
-char GetName()
+void GetName()
 {
   while (Look == '\n') Fin();
   if(!IsAlpha(Look)) Expected("Name");
-  char n = Look;
-  GetChar();
+  Value[0] = '\0';
+  int i = 0;
+  while(IsAlNum(Look))
+  {
+    Value[i] = Look;
+    Value[++i] = '\0';
+    GetChar();
+  }
   SkipWhite();
-  return n;
 }
 
 // Get a Number
-char GetNum()
+void GetNum()
 {
   if(!IsDigit(Look)) Expected("Integer");
-  char n = Look;
-  GetChar();
+  Value[0] = '\0';
+  int i = 0;
+  while(IsDigit(Look))
+  {
+    Value[i] = Look;
+    Value[++i] = '\0';
+    GetChar();
+  }
+  Token = '#';
   SkipWhite();
-  return n;
+}
+
+void Scan()
+{
+  GetName();
+  Token = KWCode[Lookup()];
+}
+
+void MatchString(char* x, int maxlen)
+{
+  for(int i = 0; i<maxlen; i++)
+    if(Value[i]!=x[i]) Expected(x);
 }
 
 // --------------------------------------------------------------
@@ -262,22 +337,21 @@ void EmitLn(char *s)
 // Parse and Translate an Identifier }
 void Ident()
 {
-  char name = GetName();
+  GetName();
   if(Look == '(') // We're dealing with a function call
   {
     Match('(');
-    Match(')'); 
-    //             01234567890123456789
-    char line[] = "CALL __x\t; Call subroutine";
-    line[7] = name;
+    Match(')');
+    char line[50];
+    sprintf(line, "CALL __%s\t; Call subroutine", Value);
     EmitLn(line);
-    declareSubroutine(name);
+    // declareSubroutine(Value);
   } else {      // A variable call
     //             01234567890
-    char line[] = "MOV R8, [x]\t ; Retrieve var";
-    line[9] = name;
+    char line[50];
+    sprintf(line, "MOV R8, [_var_%s]\t ; Retrieve var", Value);
     EmitLn(line);
-    declareGlobal(name);
+    declareGlobal(Value);
   }
 }
 
@@ -299,10 +373,10 @@ void Factor()
     Ident();
   }
   else
-  { //             01234567899012345678901234567890
-    char Line[] = "MOV R8, 0\t ; Move num to R8";
-    char c = GetNum();
-    Line[8] = c;
+  {
+    GetNum();
+    char Line[50];
+    sprintf(Line, "MOV R8, %s\t ; Move num to R8", Value);
     EmitLn(Line);
   }
 }
@@ -416,7 +490,7 @@ void Expression()
 // Dummy for now
 void Condition()
 {
-  EmitLn("<Condition>");
+  EmitLn("cmp R8, 0\t ; FORNOWTEMPOART");
 }
 
 // Forward decl
@@ -426,62 +500,60 @@ void Block();
 void If()
 {
   char l1[MAX_LABEL_LEN], l2[MAX_LABEL_LEN];
-  Match('i');
-  Condition();
   MakeNewLabel(l1);
   strcopy(l1, l2, MAX_LABEL_LEN);
   EmitLn("; IF");
+  Condition();
   printf("\tJE %s\t ; Jump Equal (false) to endif or else\n", l1);
   Block();
-  if(Look == 'l')// else
+  if(Token == 'l')// else
   {
-    Match('l');
     EmitLn("; ELSE");
     MakeNewLabel(l2);
     printf("\tJMP %s\t ; after this is else, so get out of if block \n", l2);
     PostLabel(l1);
     Block();
   }
-  Match('e');
+  MatchString("ENDIF", 5);
   PostLabel(l2);
 }
 
 // Translate Switch Construct
-void Switch()
-{
-  char endS[MAX_LABEL_LEN], endC[MAX_LABEL_LEN];
-  Match('s');
-  EmitLn("; Switch");
-  MakeNewLabel(endS);
-  Expression();
-  EmitLn("PUSH R8\t ; Push expression to test against");
-  Block();
-  while(Look == 'c')
-  {
-    Match('c');
-    EmitLn("; Case");
-    MakeNewLabel(endC);
-    Expression();
-    EmitLn(" <Compare R8, [RSP]");
-    printf("\tJNE %s\t ; Go to next statement if not equal\n", endC);
-    Block();
-    PostLabel(endC);
-  }
-  PostLabel(endS);
-  EmitLn("POP R8\t ; Clean up stack");
-}
+// void Switch()
+// {
+//   char endS[MAX_LABEL_LEN], endC[MAX_LABEL_LEN];
+//   Match('s');
+//   EmitLn("; Switch");
+//   MakeNewLabel(endS);
+//   Expression();
+//   EmitLn("PUSH R8\t ; Push expression to test against");
+//   Block();
+//   while(Look == 'c')
+//   {
+//     Match('c');
+//     EmitLn("; Case");
+//     MakeNewLabel(endC);
+//     Expression();
+//     EmitLn(" <Compare R8, [RSP]");
+//     printf("\tJNE %s\t ; Go to next statement if not equal\n", endC);
+//     Block();
+//     PostLabel(endC);
+//   }
+//   PostLabel(endS);
+//   EmitLn("POP R8\t ; Clean up stack");
+// }
 
 // --------------------------------------------------------------
 // Parse and Translate an Assignment Statement }
 
 void Assignment()
 {
-  char name = GetName();
+  char name[9];
+  strcopy(Value, name, 9);
   Match('=');
   Expression();
-  //             01234567890
-  char line[] = "MOV [x], R8\t ; Save result in register";
-  line[5] = name;
+  char line[50];
+  sprintf(line, "MOV [_var_%s], R8\t ; Save result in memory", name);
   EmitLn(line);
   declareGlobal(name);
 }
@@ -492,24 +564,26 @@ void Block()
 {
   int thisBlock = blockCounter++;
   printf("\t; START BLOCK %i\n", thisBlock);
-  while (Look != 'e' && // End
-         Look != 'c' && // Case
-         Look != 'l')// && // Else
+  Scan();
+  while (Token != 'e' && // End
+        //  Look != 'c' && // Case
+         Token != 'l')// && // Else
         //  Look != 'u')   // Untill
   {
-    switch (Look)
+    switch (Token)
     {
       case 'i': If(); break;
-      case 's': Switch(); break;
+      // case 's': Switch(); break;
       // case 'w': While(); break;
       // case 'p': Loop(); break;
       // case 'r': Repeat(); break;
       // case 'f': For(); break;
       // case 'd': Do(); break;
       // case 'b': Break();
-      case '\n': while(Look == '\n') Fin(); break;
+      // case '\n': while(Look == '\n') Fin(); break;
       default: Assignment(); break;
     }
+    Scan();
   }
   printf("\t; END BLOCK %i\n", thisBlock);
 }
@@ -517,8 +591,9 @@ void Block()
 // Parse and Translate a program
 void DoProgram()
 {
+  SkipWhite();
   Block();
-  if(Look != 'e') Expected("END");
+  MatchString("END", 3);
 }
 
 // Initialize
@@ -581,19 +656,33 @@ void EmitFooter()
 
   // -----------------------------------------------------------------
   // Defined functions:
-  for(int i=0; i<sizeof(Subroutines); i++)
+  /*for(int i=0; i<sizeof(Subroutines); i++)
     if(Subroutines[i]=='\0') break;
     else printf("__%c:\n\tret\n", Subroutines[i]);
-
+*/
 
   // Reserve memory
   printf("section     .data\n");
   printf("\tmsg    db  0x00\n"); // Reserved for outputting on eof
-
+  int n = 0;
+  char ident[20];
+  for(int i=0; i<1000; i++)
+  {
+    if(Globals[i]=='\0')
+    {
+      if(n==0)break;
+      ident[n] = '\0';
+      printf("\t_var_%s dw 0x0000\n", ident);
+      n = 0;
+    } else {
+      ident[n++] = Globals[i];
+    }
+  }
+/*
   // Reserver memory for the constants
   for(int i=0; i<sizeof(Globals); i++)
     if(Globals[i]=='\0') break;
-    else printf("\t%c      dw 0x0000\n", Globals[i]);
+    else printf("\t%c      dw 0x0000\n", Globals[i]);*/
 }
 
 // Main Program

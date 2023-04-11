@@ -1,7 +1,7 @@
-a=1+2*4
-sa
-  c1
-    x=2
-  c2
-    x=3
-ee
+  test=123
+  IF
+    b=test
+  ELSE
+    b=0
+  ENDIF
+END
