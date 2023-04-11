@@ -123,16 +123,18 @@ void Abort(char *s)
 // Report What Was Expected
 void Expected(char *s)
 {
-  char *ender = " Expected";
-  char line[sizeof(s) - 1 + sizeof(ender)];
-  int i = -1;
-  while (s[++i] != '\0')
-    line[i] = s[i];
-  for (int j = 0; j < sizeof(ender); j++)
-  {
-    line[i++] = ender[j];
-  }
-  Abort(line);
+  // char *ender = " Expected";
+  // char line[sizeof(s) - 1 + sizeof(ender)];
+  // int i = -1;
+  // while (s[++i] != '\0')
+  //   line[i] = s[i];
+  // for (int j = 0; j < sizeof(ender); j++)
+  // {
+  //   line[i++] = ender[j];
+  // }
+  char error[50];
+  sprintf(error, "Expected: %s", s);
+  Abort(error);
 }
 
 // --------------------------------------------------------------
@@ -306,6 +308,7 @@ void Factor()
 }
 
 // Parse and Translate the First Math Factor
+// Result stored in R8
 void SignedFactor()
 {
   char s = Look == '-';
@@ -443,6 +446,31 @@ void If()
   PostLabel(l2);
 }
 
+// Translate Switch Construct
+void Switch()
+{
+  char endS[MAX_LABEL_LEN], endC[MAX_LABEL_LEN];
+  Match('s');
+  EmitLn("; Switch");
+  MakeNewLabel(endS);
+  Expression();
+  EmitLn("PUSH R8\t ; Push expression to test against");
+  Block();
+  while(Look == 'c')
+  {
+    Match('c');
+    EmitLn("; Case");
+    MakeNewLabel(endC);
+    Expression();
+    EmitLn(" <Compare R8, [RSP]");
+    printf("\tJNE %s\t ; Go to next statement if not equal\n", endC);
+    Block();
+    PostLabel(endC);
+  }
+  PostLabel(endS);
+  EmitLn("POP R8\t ; Clean up stack");
+}
+
 // --------------------------------------------------------------
 // Parse and Translate an Assignment Statement }
 
@@ -465,12 +493,14 @@ void Block()
   int thisBlock = blockCounter++;
   printf("\t; START BLOCK %i\n", thisBlock);
   while (Look != 'e' && // End
+         Look != 'c' && // Case
          Look != 'l')// && // Else
         //  Look != 'u')   // Untill
   {
     switch (Look)
     {
       case 'i': If(); break;
+      case 's': Switch(); break;
       // case 'w': While(); break;
       // case 'p': Loop(); break;
       // case 'r': Repeat(); break;
@@ -497,11 +527,80 @@ void Init()
   GetChar();
 }
 
+void emitPrintFunctions()
+{
+  FILE *fptr;
+  fptr = fopen("../shared/printfunctions.s", "r");
+  if(fptr != NULL)
+  {
+    char c;
+    c = fgetc(fptr);
+    while(c != EOF)
+    {
+      printf("%c", c);
+      c = fgetc(fptr);
+    }
+    fclose(fptr);
+  }
+}
+
+// --------------------------------------------------------------
+// EmitHeader
+
+void EmitHeader()
+{
+  printf("section     .text\n");
+  printf("global      _start\n\n");
+  emitPrintFunctions();
+  printf("_start: \n");
+  printf("; ============== THE GENERATED PROGRAM ==============\n");
+}
+
+// --------------------------------------------------------------
+// EmitFooter
+
+void EmitFooter()
+{
+  printf("; ============== END GENERATED PROGRAM ==============\n\n");
+  // Magic to print R8
+  EmitLn("; Print register R8");
+  EmitLn("MOV RAX, R8\t ; Print R8");
+  EmitLn("CALL _printi\t; As int");
+  printf("\n");
+
+  EmitLn("; Print \\n");
+  EmitLn("MOV RAX, 10\t ; Print \\n");
+  EmitLn("CALL _printc\t; As char");
+  
+  printf("\n");
+  // stop program
+  EmitLn("; Stop gracefully");
+  EmitLn("mov rax, 60       ; exit(");
+  EmitLn("mov rdi, 0        ;   EXIT_SUCCESS");
+  EmitLn("syscall           ; );");
+
+  // -----------------------------------------------------------------
+  // Defined functions:
+  for(int i=0; i<sizeof(Subroutines); i++)
+    if(Subroutines[i]=='\0') break;
+    else printf("__%c:\n\tret\n", Subroutines[i]);
+
+
+  // Reserve memory
+  printf("section     .data\n");
+  printf("\tmsg    db  0x00\n"); // Reserved for outputting on eof
+
+  // Reserver memory for the constants
+  for(int i=0; i<sizeof(Globals); i++)
+    if(Globals[i]=='\0') break;
+    else printf("\t%c      dw 0x0000\n", Globals[i]);
+}
+
 // Main Program
 int main(){
-  // EmitHeader();
+  EmitHeader();
   Init();
   DoProgram();
-  // EmitFooter();
+  EmitFooter();
   return 0;
 }
