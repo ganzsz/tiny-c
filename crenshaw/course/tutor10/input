@@ -1,0 +1,7 @@
+  test=123
+  IF
+    b=test
+  ELSE
+    b=0
+  ENDIF
+END
