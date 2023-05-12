@@ -1,0 +1,8 @@
+  test=5
+  compare=1
+  IF
+    out=test
+  ELSE
+    out=test-3
+  ENDIF
+END
